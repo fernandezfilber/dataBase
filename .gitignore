@@ -1,0 +1,13 @@
+# Variables de entorno y secretos
+.env
+
+# Datos persistentes de las bases de datos y servicios
+data/
+
+# Certificados de Traefik (Let's Encrypt)
+# (Ya incluido en la regla de data/ pero es buena práctica especificarlo mentalmente)
+data/traefik/letsencrypt/acme.json
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
