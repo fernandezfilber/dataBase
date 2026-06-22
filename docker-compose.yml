@@ -33,7 +33,7 @@ services:
     labels:
       - "traefik.enable=true"
       # Dashboard Routing - Cambia 'traefik.forwardvision.cloud' si quieres usar otro
-      - "traefik.http.routers.dashboard.rule=Host(`traefik.forwardvision.cloud`)" 
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.gomap.digital`)" 
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.tls.certresolver=myresolver"
@@ -72,3 +72,5 @@ networks:
   shared-infra:
     name: shared-infra
     driver: bridge
+
+
