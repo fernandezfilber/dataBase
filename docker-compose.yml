@@ -1,0 +1,74 @@
+version: "3.8"
+
+services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "80:80"
+      - "443:443"
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=shared-infra"
+      # Entrypoints setup (HTTP redirects to HTTPS)
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      # Let's Encrypt configuration (HTTP Challenge)
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.myresolver.acme.email=${TRAEFIK_ACME_EMAIL}"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./data/traefik/letsencrypt:/letsencrypt"
+    networks:
+      - shared-infra
+    labels:
+      - "traefik.enable=true"
+      # Dashboard Routing - Cambia 'traefik.forwardvision.cloud' si quieres usar otro
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.forwardvision.cloud`)" 
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=myresolver"
+      # Autenticación básica para el dashboard (usuario: admin, password: adminPassword)
+      - "traefik.http.routers.dashboard.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$vK.xZt/K$$5yUa2g1PZtA/3y5NlYmB01"
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_central
+    restart: unless-stopped
+    # Use native password auth for better compatibility with older clients if needed, though optional in 8.0
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+    networks:
+      - shared-infra
+    ports:
+      - "3306:3306" # Expuesto al host (tu máquina o servidor) para que te conectes con DBeaver/HeidiSQL
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_central
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - shared-infra
+    ports:
+      - "6379:6379"
+
+networks:
+  shared-infra:
+    name: shared-infra
+    driver: bridge
